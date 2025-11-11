@@ -38,7 +38,7 @@ const Layout = () => {
               {isAuthenticated ? (
                 <div className="flex items-center">
                   <span className="text-sm text-gray-700 mr-4">
-                    Welcome, {user?.name}
+                    Welcome, {user?.username}
                   </span>
                   <button
                     onClick={logout}

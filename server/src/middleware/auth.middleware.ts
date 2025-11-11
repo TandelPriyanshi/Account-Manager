@@ -24,7 +24,10 @@ const auth = async (req: AuthRequest, res: Response, next: NextFunction) => {
       where: { id: decoded.id },
       select: {
         id: true,
-        name: true,
+        username: true,
+        firstName: true,
+        lastName: true,
+        phoneNumber: true,
         email: true,
         createdAt: true,
         updatedAt: true
