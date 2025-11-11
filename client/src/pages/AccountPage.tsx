@@ -2,33 +2,46 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import * as authService from '../services/authService';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../components/ui/card';
+import { Button } from '../components/ui/button';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { format } from 'date-fns';
 
 const AccountPage = () => {
   const { user, updateUser, logout } = useAuth();
-  const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [formData, setFormData] = useState({
+    email: '',
+    firstName: '',
+    lastName: '',
+    phoneNumber: ''
+  });
   const [isEditing, setIsEditing] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
     if (user) {
-      setName(user.name);
-      setEmail(user.email);
+      setFormData({
+        email: user.email,
+        firstName: user.firstName || '',
+        lastName: user.lastName || '',
+        phoneNumber: user.phoneNumber || ''
+      });
     }
   }, [user]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!name.trim()) {
-      alert('Name cannot be empty');
-      return;
-    }
 
     try {
       setIsLoading(true);
-      const updatedUser = await authService.updateUser({ name });
+      const updatedUser = await authService.updateUser({
+        firstName: formData.firstName || null,
+        lastName: formData.lastName || null,
+        phoneNumber: formData.phoneNumber || null
+      });
+      
       updateUser(updatedUser);
       setIsEditing(false);
       // Show success message
@@ -39,6 +52,14 @@ const AccountPage = () => {
     }
   };
 
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
   const handleLogout = () => {
     authService.logout();
     logout();
@@ -47,117 +68,136 @@ const AccountPage = () => {
 
   if (!user) {
     return (
-      <div className="text-center py-12">
-        <p className="text-lg text-gray-600">Please log in to view your account.</p>
+      <div className="flex items-center justify-center min-h-screen">
+        <Card className="w-full max-w-md">
+          <CardHeader>
+            <CardTitle>Account</CardTitle>
+            <CardDescription>Please log in to view your account.</CardDescription>
+          </CardHeader>
+        </Card>
       </div>
     );
   }
 
   return (
-    <div className="max-w-3xl mx-auto">
-      <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
-          <div>
-            <h3 className="text-lg leading-6 font-medium text-gray-900">Account Information</h3>
-            <p className="mt-1 max-w-2xl text-sm text-gray-500">Personal details and preferences</p>
-          </div>
-          <button
+    <div className="container mx-auto px-4 py-8">
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-3xl font-bold">Account Settings</h1>
+        <div>
+          <Button
+            variant={isEditing ? 'outline' : 'hero'}
             onClick={() => setIsEditing(!isEditing)}
-            className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50"
+            className="ml-4"
           >
             {isEditing ? 'Cancel' : 'Edit Profile'}
-          </button>
-        </div>
-        
-        <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
-          {isEditing ? (
-            <form onSubmit={handleSubmit} className="space-y-6">
-              <div>
-                <label htmlFor="name" className="block text-sm font-medium text-gray-700">
-                  Full Name
-                </label>
-                <div className="mt-1">
-                  <input
-                    type="text"
-                    id="name"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    className="input"
-                    required
-                  />
-                </div>
-              </div>
-              
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                  Email address
-                </label>
-                <div className="mt-1">
-                  <input
-                    type="email"
-                    id="email"
-                    value={email}
-                    disabled
-                    className="input bg-gray-100 cursor-not-allowed"
-                  />
-                </div>
-                <p className="mt-2 text-sm text-gray-500">
-                  Contact support to change your email address
-                </p>
-              </div>
-              
-              <div className="flex justify-end space-x-3 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setIsEditing(false)}
-                  className="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-primary hover:bg-primary-dark focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary/50 disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? 'Saving...' : 'Save Changes'}
-                </button>
-              </div>
-            </form>
-          ) : (
-            <dl className="divide-y divide-gray-200">
-              <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4">
-                <dt className="text-sm font-medium text-gray-500">Full name</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{user.name}</dd>
-              </div>
-              <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4">
-                <dt className="text-sm font-medium text-gray-500">Email address</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">{user.email}</dd>
-              </div>
-              <div className="py-4 sm:py-5 sm:grid sm:grid-cols-3 sm:gap-4">
-                <dt className="text-sm font-medium text-gray-500">Member since</dt>
-                <dd className="mt-1 text-sm text-gray-900 sm:mt-0 sm:col-span-2">
-                  {new Date().toLocaleDateString()}
-                </dd>
-              </div>
-            </dl>
-          )}
-        </div>
-        
-        <div className="px-4 py-4 bg-gray-50 sm:px-6 flex justify-between">
-          <div>
-            <h3 className="text-lg leading-6 font-medium text-gray-900">Danger Zone</h3>
-            <p className="mt-1 text-sm text-gray-500">
-              Be careful, these actions are irreversible.
-            </p>
-          </div>
-          <button
-            onClick={handleLogout}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-          >
+          </Button>
+          <Button variant="destructive" onClick={handleLogout} className="ml-2">
             Logout
-          </button>
+          </Button>
         </div>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Profile Information</CardTitle>
+          <CardDescription>
+            Update your account's profile information.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label>Username</Label>
+                <p className="text-base">{user.username}</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Email</Label>
+                <p className="text-base">{user.email}</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="firstName">First Name</Label>
+                {isEditing ? (
+                  <Input
+                    id="firstName"
+                    name="firstName"
+                    value={formData.firstName}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                  />
+                ) : (
+                  <p className="text-base">{user.firstName || 'Not set'}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="lastName">Last Name</Label>
+                {isEditing ? (
+                  <Input
+                    id="lastName"
+                    name="lastName"
+                    value={formData.lastName}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                  />
+                ) : (
+                  <p className="text-base">{user.lastName || 'Not set'}</p>
+                )}
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="phoneNumber">Phone Number</Label>
+                {isEditing ? (
+                  <Input
+                    id="phoneNumber"
+                    name="phoneNumber"
+                    value={formData.phoneNumber}
+                    onChange={handleChange}
+                    disabled={isLoading}
+                    type="tel"
+                  />
+                ) : (
+                  <p className="text-base">{user.phoneNumber || 'Not set'}</p>
+                )}
+              </div>
+            </div>
+
+            {isEditing && (
+              <div className="flex justify-end space-x-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setIsEditing(false)}
+                  disabled={isLoading}
+                >
+                  Cancel
+                </Button>
+                <Button type="submit" disabled={isLoading}>
+                  {isLoading ? 'Saving...' : 'Save Changes'}
+                </Button>
+              </div>
+            )}
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card className="mt-6">
+        <CardHeader>
+          <CardTitle>Account Information</CardTitle>
+        </CardHeader>
+        <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-1">
+            <Label className="text-muted-foreground">Account created</Label>
+            <p className="text-base">
+              {user.createdAt ? format(new Date(user.createdAt), 'PPpp') : 'N/A'}
+            </p>
+          </div>
+          <div className="space-y-1">
+            <Label className="text-muted-foreground">Last updated</Label>
+            <p className="text-base">
+              {user.updatedAt ? format(new Date(user.updatedAt), 'PPpp') : 'N/A'}
+            </p>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   );
 };

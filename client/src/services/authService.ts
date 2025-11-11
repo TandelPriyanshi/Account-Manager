@@ -1,11 +1,27 @@
 import axios from 'axios';
+import { toast } from 'react-toastify';
+
+type ApiError = {
+  response?: {
+    data?: {
+      message?: string;
+    };
+    status?: number;
+  };
+  message?: string;
+};
 
 const API_URL = '/api';
 
-interface User {
+export interface User {
   id: number;
-  name: string;
+  username: string;
   email: string;
+  firstName: string | null;
+  lastName: string | null;
+  phoneNumber: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface AuthResponse {
@@ -52,22 +68,83 @@ api.interceptors.response.use(
 );
 
 export const login = async (email: string, password: string): Promise<AuthResponse> => {
-  const response = await api.post<AuthResponse>('/auth/login', { email, password });
-  return response.data;
+  try {
+    const response = await api.post<AuthResponse>('/auth/login', { email, password });
+    toast.success('Login successful!');
+    return response.data;
+  } catch (error) {
+    const apiError = error as ApiError;
+    const errorMessage = apiError.response?.data?.message || apiError.message || 'Login failed. Please try again.';
+    
+    if (apiError.response?.status === 401) {
+      toast.error('Invalid email or password');
+    } else {
+      toast.error(errorMessage);
+    }
+    
+    throw new Error(errorMessage);
+  }
 };
 
-export const register = async (name: string, email: string, password: string): Promise<AuthResponse> => {
-  const response = await api.post<AuthResponse>('/auth/register', { name, email, password });
-  return response.data;
+export const register = async (
+  username: string,
+  email: string, 
+  password: string, 
+  confirmPassword: string,
+  firstName?: string,
+  lastName?: string,
+  phoneNumber?: string
+): Promise<AuthResponse> => {
+  // Client-side validation
+  if (password !== confirmPassword) {
+    toast.error('Passwords do not match');
+    throw new Error('Passwords do not match');
+  }
+
+  if (password.length < 6) {
+    toast.error('Password must be at least 6 characters long');
+    throw new Error('Password must be at least 6 characters long');
+  }
+
+  try {
+    const response = await api.post<AuthResponse>('/auth/register', { 
+      username,
+      email, 
+      password,
+      firstName,
+      lastName,
+      phoneNumber
+    });
+    
+    toast.success('Registration successful! Please log in.');
+    return response.data;
+  } catch (error) {
+    const apiError = error as ApiError;
+    const errorMessage = apiError.response?.data?.message || apiError.message || 'Registration failed. Please try again.';
+    
+    if (apiError.response?.status === 400) {
+      if (errorMessage.toLowerCase().includes('email')) {
+        toast.error('Email is already registered');
+      } else if (errorMessage.toLowerCase().includes('password')) {
+        toast.error('Invalid password format');
+      } else {
+        toast.error(errorMessage);
+      }
+    } else {
+      toast.error(errorMessage);
+    }
+    
+    throw new Error(errorMessage);
+  }
 };
 
 export const getCurrentUser = async (): Promise<User> => {
-  const response = await api.get<User>('/user');
+  const response = await api.get<User>('/user/me');
   return response.data;
 };
 
 export const updateUser = async (userData: Partial<User>): Promise<User> => {
-  const response = await api.put<User>('/user', userData);
+  const response = await api.put<User>('/user/me', userData);
   return response.data;
 };
 

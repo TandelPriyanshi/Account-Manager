@@ -12,15 +12,17 @@
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
+    "@popperjs/core": "^2.11.8",
     "@types/axios": "^0.9.36",
     "@types/react-router-dom": "^5.3.3",
     "@types/react-toastify": "^4.0.2",
     "axios": "^1.13.2",
+    "bootstrap": "^5.3.8",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-hook-form": "^7.49.3",
     "react-router-dom": "^6.30.1",
-    "react-toastify": "^10.0.6"
+    "react-toastify": "^10.0.4"
   },
   "devDependencies": {
     "@types/node": "^20.10.0",

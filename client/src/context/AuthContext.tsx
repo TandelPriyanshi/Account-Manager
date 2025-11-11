@@ -3,10 +3,15 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import * as authService from '../services/authService';
 
-interface User {
+export interface User {
   id: number;
-  name: string;
+  username: string;
   email: string;
+  firstName: string | null;
+  lastName: string | null;
+  phoneNumber: string | null;
+  createdAt: string;
+  updatedAt: string;
 }
 
 interface AuthContextType {
@@ -14,7 +19,15 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  register: (
+    username: string,
+    email: string,
+    password: string,
+    confirmPassword: string,
+    firstName?: string,
+    lastName?: string,
+    phoneNumber?: string
+  ) => Promise<void>;
   logout: () => void;
   updateUser: (userData: Partial<User>) => void;
 }
@@ -32,20 +45,25 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       try {
         const token = localStorage.getItem('token');
         if (token) {
-          // Here you would typically validate the token with the server
-          // For now, we'll just check if it exists
-          const userData = JSON.parse(localStorage.getItem('user') || 'null');
-          if (userData) {
+          // Try to get the current user from the server to validate the token
+          try {
+            const userData = await authService.getCurrentUser();
             setUser(userData);
-          } else {
-            // If no user data is found, clear the token
+            // Update local storage with fresh user data
+            localStorage.setItem('user', JSON.stringify(userData));
+          } catch (error) {
+            console.error('Token validation failed:', error);
+            // If token is invalid, clear auth data
             localStorage.removeItem('token');
+            localStorage.removeItem('user');
+            setUser(null);
           }
         }
       } catch (error) {
         console.error('Auth check failed:', error);
         localStorage.removeItem('token');
         localStorage.removeItem('user');
+        setUser(null);
       } finally {
         setIsLoading(false);
       }
@@ -74,19 +92,34 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const register = async (name: string, email: string, password: string) => {
+  const register = async (
+    username: string,
+    email: string,
+    password: string,
+    confirmPassword: string,
+    firstName?: string,
+    lastName?: string,
+    phoneNumber?: string
+  ) => {
     try {
       setIsLoading(true);
-      const { user, token } = await authService.register(name, email, password);
+      const { user, token } = await authService.register(
+        username,
+        email,
+        password,
+        confirmPassword,
+        firstName,
+        lastName,
+        phoneNumber
+      );
       
       localStorage.setItem('token', token);
       localStorage.setItem('user', JSON.stringify(user));
       setUser(user);
       
-      toast.success('Registration successful!');
-      navigate('/account');
+      navigate('/dashboard');
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Registration failed. Please try again.';
+      const message = error instanceof Error ? error.message : 'Registration failed';
       toast.error(message);
       throw error;
     } finally {
@@ -102,11 +135,28 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     toast.success('Logged out successfully');
   };
 
-  const updateUser = (userData: Partial<User>) => {
-    if (user) {
-      const updatedUser = { ...user, ...userData };
-      setUser(updatedUser);
+  const updateUser = async (userData: Partial<User>) => {
+    if (!user) return;
+
+    try {
+      setIsLoading(true);
+      const updatedUser = await authService.updateUser(userData);
+      setUser(prev => ({
+        ...prev!,
+        ...updatedUser,
+        firstName: updatedUser.firstName ?? null,
+        lastName: updatedUser.lastName ?? null,
+        phoneNumber: updatedUser.phoneNumber ?? null
+      }));
       localStorage.setItem('user', JSON.stringify(updatedUser));
+      toast.success('Profile updated successfully');
+      return updatedUser;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Failed to update profile';
+      toast.error(message);
+      throw error;
+    } finally {
+      setIsLoading(false);
     }
   };
 

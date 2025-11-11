@@ -9,10 +9,10 @@ const router = Router();
 // Register a new user
 router.post('/register', async (req: RegisterRequest, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { username, email, password, firstName, lastName, phoneNumber } = req.body;
 
     // Validate input
-    if (!name || !email || !password) {
+    if (!username || !email || !password) {
       return res.status(400).json({ message: 'Please provide all required fields' });
     }
 
@@ -32,10 +32,24 @@ router.post('/register', async (req: RegisterRequest, res) => {
     // Create user
     const user = await prisma.user.create({
       data: {
-        name,
+        username,
         email,
-        password: hashedPassword
-      }
+        password: hashedPassword,
+        firstName: firstName || null,
+        lastName: lastName || null,
+        phoneNumber: phoneNumber || null
+      },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        password: true,
+        firstName: true,
+        lastName: true,
+        phoneNumber: true,
+        createdAt: true,
+        updatedAt: true
+      } as const
     });
 
     // Generate JWT
@@ -70,7 +84,18 @@ router.post('/login', async (req: LoginRequest, res) => {
 
     // Check if user exists
     const user = await prisma.user.findUnique({
-      where: { email }
+      where: { email },
+      select: {
+        id: true,
+        username: true,
+        email: true,
+        password: true,
+        firstName: true,
+        lastName: true,
+        phoneNumber: true,
+        createdAt: true,
+        updatedAt: true
+      } as const
     });
 
     if (!user) {

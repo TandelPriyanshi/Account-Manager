@@ -13,11 +13,14 @@ router.get('/me', auth, async (req: AuthRequest, res) => {
       where: { id: req.user?.id },
       select: {
         id: true,
-        name: true,
+        username: true,
         email: true,
+        firstName: true,
+        lastName: true,
+        phoneNumber: true,
         createdAt: true,
         updatedAt: true
-      }
+      } as const
     });
 
     if (!user) {
@@ -34,11 +37,21 @@ router.get('/me', auth, async (req: AuthRequest, res) => {
 // Update user profile
 router.put('/me', auth, async (req: AuthRequest, res) => {
   try {
-    const { name, email, password } = req.body;
-    const updates: { name?: string; email?: string; password?: string } = {};
+    const { username, email, password, firstName, lastName, phoneNumber } = req.body;
+    const updates: {
+      username?: string;
+      email?: string;
+      password?: string;
+      firstName?: string;
+      lastName?: string;
+      phoneNumber?: string;
+    } = {};
 
-    if (name) updates.name = name;
+    if (username) updates.username = username;
     if (email) updates.email = email;
+    if (firstName !== undefined) updates.firstName = firstName;
+    if (lastName !== undefined) updates.lastName = lastName;
+    if (phoneNumber !== undefined) updates.phoneNumber = phoneNumber;
     
     if (password) {
       const salt = await bcrypt.genSalt(10);
@@ -50,8 +63,11 @@ router.put('/me', auth, async (req: AuthRequest, res) => {
       data: updates,
       select: {
         id: true,
-        name: true,
+        username: true,
         email: true,
+        firstName: true,
+        lastName: true,
+        phoneNumber: true,
         createdAt: true,
         updatedAt: true
       }
